@@ -31,13 +31,19 @@ MAX_FAILED_HEARTBEATS = 10
 
 def get_latest_local_version():
     global LATEST_LOCAL_VERSION
-    print(bcolors.OKBLUE, "[get local version]", bcolors.ENDC, "checking local version")
+    global PROCESS
+    should_print = True
+    if 'PROCESS' in globals():
+        should_print = False
+    if should_print:
+        print(bcolors.OKBLUE, "[get local version]", bcolors.ENDC, "checking local version")
     try:
         f = open("version.txt", "r")
         version = f.read().strip()
         LATEST_LOCAL_VERSION = version
         f.close()
-        print(bcolors.OKGREEN, "[get local version]", bcolors.ENDC, "local version:", LATEST_LOCAL_VERSION)
+        if should_print:
+            print(bcolors.OKGREEN, "[get local version]", bcolors.ENDC, "local version:", LATEST_LOCAL_VERSION)
         """
             This means the local server is up to date
         """
@@ -61,14 +67,21 @@ def set_latest_local_version(version):
 
 def get_latest_version():
     global LATEST_VERSION
-    print(bcolors.OKBLUE, "[get latest version]", bcolors.ENDC, "checking latest version from api")
+    global PROCESS
+    should_print = True
+    if 'PROCESS' in globals():
+        should_print = False
+    if should_print:
+        print(bcolors.OKBLUE, "[get latest version]", bcolors.ENDC, "checking latest version from api")
     try:
         response = urllib.request.urlopen(VERSION_ENDPOINT)
         data = json.load(response)
         LATEST_VERSION = data[0]["name"]
-        print(bcolors.OKGREEN, "[get latest version]", bcolors.ENDC, "latest version:", LATEST_VERSION)
+        if should_print:
+            print(bcolors.OKGREEN, "[get latest version]", bcolors.ENDC, "latest version:", LATEST_VERSION)
         if LATEST_VERSION == LATEST_LOCAL_VERSION:
-            print(bcolors.OKGREEN, "[get latest version]", bcolors.ENDC, "latest version is up to date")
+            if should_print:
+                print(bcolors.OKGREEN, "[get latest version]", bcolors.ENDC, "latest version is up to date")
             return True
         else:
             print(bcolors.WARNING, "[get latest version]", bcolors.ENDC, "latest version is not up to date")
@@ -86,7 +99,8 @@ def tick():
         print(bcolors.FAIL, "[tick]", bcolors.ENDC, "server is not even defined")
         return False
     try:
-        requests.get(f"http://{IP}:{PORT}")
+        with urllib.request.urlopen(f"http://{IP}:{PORT}") as response:
+            response.read()
         return True
     except:
         print(bcolors.FAIL, "[tick]", bcolors.ENDC, "server is offline")
