@@ -1,9 +1,9 @@
-from re import sub
-import requests
 import subprocess
 from time import sleep
 from os import getcwd
 from subprocess import Popen, PIPE
+import urllib.request
+import json
 
 class bcolors:
     HEADER = '\033[95m'
@@ -42,7 +42,7 @@ def get_latest_local_version():
             This means the local server is up to date
         """
         return get_latest_version()
-    except:
+    except Exception as e:
         print(bcolors.WARNING, "[get local version]", bcolors.ENDC, "Failed to get local version, downloading latest version from steam")
         update()
         """
@@ -63,7 +63,9 @@ def get_latest_version():
     global LATEST_VERSION
     print(bcolors.OKBLUE, "[get latest version]", bcolors.ENDC, "checking latest version from api")
     try:
-        LATEST_VERSION = requests.get(VERSION_ENDPOINT).json()[0]["name"]
+        response = urllib.request.urlopen(VERSION_ENDPOINT)
+        data = json.load(response)
+        LATEST_VERSION = data[0]["name"]
         print(bcolors.OKGREEN, "[get latest version]", bcolors.ENDC, "latest version:", LATEST_VERSION)
         if LATEST_VERSION == LATEST_LOCAL_VERSION:
             print(bcolors.OKGREEN, "[get latest version]", bcolors.ENDC, "latest version is up to date")
