@@ -35,3 +35,19 @@ The script is highly configurable through these parameters:
 - 🤖 `PROCESS`: The actual server program running on your computer
 - 💔 `FAILED_HEARTBEATS` (default: 0): How many times in a row the server didn't respond
 - ❤️ `MAX_FAILED_HEARTBEATS` (default: 10): How many missed heartbeats before we restart the server
+
+## 📚 Installation
+
+To get started, simply run the install script:
+
+```bash
+git clone https://github.com/olivatooo/continuous-uptime && cd continuous-uptime && bash install.sh
+```
+
+## 📖 Usage
+
+To start the server, run:
+
+```bash
+python3 main.py
+```
