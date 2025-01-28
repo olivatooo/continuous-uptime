@@ -1,9 +1,10 @@
 import subprocess
 from time import sleep
-from os import getcwd
+from os import getcwd, path
 from subprocess import Popen, PIPE
 import urllib.request
 import json
+import sys
 
 class bcolors:
     HEADER = '\033[95m'
@@ -36,33 +37,41 @@ def get_latest_local_version():
     if 'PROCESS' in globals():
         should_print = False
     if should_print:
-        print(bcolors.OKBLUE, "[get local version]", bcolors.ENDC, "checking local version")
+        print(f"{bcolors.OKBLUE}[🔍 get local version]{bcolors.ENDC} Checking local version...")
     try:
+        if not path.exists("version.txt"):
+            print(f"{bcolors.WARNING}[❌ get local version]{bcolors.ENDC} version.txt not found!")
+            return False
+            
         f = open("version.txt", "r")
         version = f.read().strip()
+        if not version:
+            print(f"{bcolors.WARNING}[⚠️ get local version]{bcolors.ENDC} Empty version file!")
+            return False
+            
         LATEST_LOCAL_VERSION = version
         f.close()
         if should_print:
-            print(bcolors.OKGREEN, "[get local version]", bcolors.ENDC, "local version:", LATEST_LOCAL_VERSION)
-        """
-            This means the local server is up to date
-        """
+            print(f"{bcolors.OKGREEN}[✅ get local version]{bcolors.ENDC} Local version: {LATEST_LOCAL_VERSION}")
         return get_latest_version()
     except Exception as e:
-        print(bcolors.WARNING, "[get local version]", bcolors.ENDC, "Failed to get local version, downloading latest version from steam")
+        print(f"{bcolors.WARNING}[⚠️ get local version]{bcolors.ENDC} Failed to get local version: {str(e)}")
+        print(f"{bcolors.OKBLUE}[⬇️ get local version]{bcolors.ENDC} Downloading latest version from Steam...")
         update()
-        """
-            This means the binary was updated
-        """
         return False
 
 
 def set_latest_local_version(version):
     global LATEST_LOCAL_VERSION
-    f = open("version.txt", "w")
-    f.write(version)
-    f.close()
-    LATEST_LOCAL_VERSION = version
+    print(f"{bcolors.OKBLUE}[💾 set version]{bcolors.ENDC} Saving new version: {version}")
+    try:
+        f = open("version.txt", "w")
+        f.write(version)
+        f.close()
+        LATEST_LOCAL_VERSION = version
+        print(f"{bcolors.OKGREEN}[✅ set version]{bcolors.ENDC} Version saved successfully!")
+    except Exception as e:
+        print(f"{bcolors.FAIL}[❌ set version]{bcolors.ENDC} Failed to save version: {str(e)}")
 
 
 def get_latest_version():
@@ -72,72 +81,92 @@ def get_latest_version():
     if 'PROCESS' in globals():
         should_print = False
     if should_print:
-        print(bcolors.OKBLUE, "[get latest version]", bcolors.ENDC, "checking latest version from api")
+        print(f"{bcolors.OKBLUE}[🌐 get latest version]{bcolors.ENDC} Checking latest version from API...")
     try:
-        response = urllib.request.urlopen(VERSION_ENDPOINT)
+        response = urllib.request.urlopen(VERSION_ENDPOINT, timeout=10)
         data = json.load(response)
+        if not data:
+            print(f"{bcolors.FAIL}[❌ get latest version]{bcolors.ENDC} Empty response from API")
+            return False
+            
         LATEST_VERSION = data[0]["name"]
         if should_print:
-            print(bcolors.OKGREEN, "[get latest version]", bcolors.ENDC, "latest version:", LATEST_VERSION)
+            print(f"{bcolors.OKGREEN}[✅ get latest version]{bcolors.ENDC} Latest version: {LATEST_VERSION}")
         if LATEST_VERSION == LATEST_LOCAL_VERSION:
             if should_print:
-                print(bcolors.OKGREEN, "[get latest version]", bcolors.ENDC, "latest version is up to date")
+                print(f"{bcolors.OKGREEN}[✨ get latest version]{bcolors.ENDC} Server is up to date!")
             return True
         else:
-            print(bcolors.WARNING, "[get latest version]", bcolors.ENDC, "latest version is not up to date")
+            print(f"{bcolors.WARNING}[⚠️ get latest version]{bcolors.ENDC} New version available!")
             set_latest_local_version(LATEST_VERSION)
-            print(bcolors.OKGREEN, "[get latest version]", bcolors.ENDC, "latest version set up")
             return False
-    except:
-        print(bcolors.FAIL, "[get latest version]", bcolors.ENDC, "failed to get latest version")
+    except urllib.error.URLError as e:
+        print(f"{bcolors.FAIL}[❌ get latest version]{bcolors.ENDC} Network error: {str(e)}")
+        raise SystemExit
+    except Exception as e:
+        print(f"{bcolors.FAIL}[❌ get latest version]{bcolors.ENDC} Unexpected error: {str(e)}")
         raise SystemExit
 
 
 def tick():
     global PROCESS
     if 'PROCESS' not in globals():
-        print(bcolors.FAIL, "[tick]", bcolors.ENDC, "server is not even defined")
+        print(f"{bcolors.FAIL}[❌ tick]{bcolors.ENDC} Server process not initialized!")
         return False
     try:
-        with urllib.request.urlopen(f"http://{IP}:{PORT}") as response:
+        with urllib.request.urlopen(f"http://{IP}:{PORT}", timeout=5) as response:
             response.read()
+        print(f"{bcolors.OKGREEN}[💗 tick]{bcolors.ENDC} Server heartbeat OK")
         return True
     except:
-        print(bcolors.FAIL, "[tick]", bcolors.ENDC, "server is offline")
+        print(f"{bcolors.FAIL}[💔 tick]{bcolors.ENDC} Server is offline!")
         return False
 
 
 def kill():
-    print(bcolors.OKBLUE, "[kill]", bcolors.ENDC, "killing server...")
+    print(f"{bcolors.OKBLUE}[🔪 kill]{bcolors.ENDC} Terminating server process...")
     global PROCESS
-    PROCESS.kill()
-    PROCESS.send_signal(9)
-    PROCESS.wait()
+    try:
+        PROCESS.kill()
+        PROCESS.send_signal(9)
+        PROCESS.wait(timeout=10)
+        print(f"{bcolors.OKGREEN}[✅ kill]{bcolors.ENDC} Server terminated successfully!")
+    except Exception as e:
+        print(f"{bcolors.FAIL}[❌ kill]{bcolors.ENDC} Error killing server: {str(e)}")
 
 
 def start():
-    print(bcolors.OKBLUE, "[start]", bcolors.ENDC, "starting server...")
+    print(f"{bcolors.OKBLUE}[🚀 start]{bcolors.ENDC} Launching server...")
     global PROCESS
+    
+    if not path.exists("./NanosWorldServer.sh"):
+        print(f"{bcolors.FAIL}[❌ start]{bcolors.ENDC} Server executable not found!")
+        raise SystemExit
+        
     PROCESS = Popen([""], executable="./NanosWorldServer.sh", stdin=PIPE)
     retries = 0
+    max_retries = 30
+    
+    print(f"{bcolors.OKBLUE}[⏳ start]{bcolors.ENDC} Waiting for server to come online...")
     while not tick():
         retries += 1
-        print(bcolors.FAIL, "[start]", bcolors.ENDC, f"server is starting... attempts {retries}")
+        print(f"{bcolors.WARNING}[🔄 start]{bcolors.ENDC} Attempt {retries}/{max_retries}")
+        if retries >= max_retries:
+            print(f"{bcolors.FAIL}[❌ start]{bcolors.ENDC} Server failed to start after {max_retries} attempts!")
+            raise SystemExit
         sleep(1)
+    print(f"{bcolors.OKGREEN}[✅ start]{bcolors.ENDC} Server started successfully!")
 
 
 def restart():
-    print(bcolors.OKBLUE, "[restart]", bcolors.ENDC, "restarting server...")
+    print(f"{bcolors.OKBLUE}[🔄 restart]{bcolors.ENDC} Initiating server restart...")
     kill()
+    sleep(2)  # Give the system some time to clean up
     start()
-    pass
 
 
 def update():
-    """
-        Update server using steamcmd
-    """
-    print(bcolors.OKBLUE, "[update]", bcolors.ENDC, "updating server...")
+    print(f"{bcolors.OKBLUE}[⬆️ update]{bcolors.ENDC} Starting server update...")
     cwd = getcwd()
     steamcmd = [
         "steamcmd",
@@ -147,17 +176,21 @@ def update():
     ]
 
     if IS_BETA_BRANCH:
+        print(f"{bcolors.WARNING}[🧪 update]{bcolors.ENDC} Using beta branch: bleeding-edge")
         steamcmd += ["-beta", "bleeding-edge"]
 
     steamcmd += [
         "validate", "+quit"
     ]
+    
+    print(f"{bcolors.OKBLUE}[⏳ update]{bcolors.ENDC} Downloading updates...")
     pout = subprocess.run(steamcmd, cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     if pout.returncode == 0:
-        print(bcolors.OKGREEN, "[update]", bcolors.ENDC, "server updated!")
+        print(f"{bcolors.OKGREEN}[✅ update]{bcolors.ENDC} Server updated successfully!")
         get_latest_version()
     else:
-        print(bcolors.FAIL, "[update]", bcolors.ENDC, "failed to update server, error code:", pout.returncode, "make sure you have steamcmd installed")
+        print(f"{bcolors.FAIL}[❌ update]{bcolors.ENDC} Update failed (code: {pout.returncode})")
+        print(f"{bcolors.WARNING}[⚠️ update]{bcolors.ENDC} Please verify steamcmd is installed!")
         raise SystemExit
 
 
@@ -167,57 +200,65 @@ def send_cmd(cmd):
         return False, "Empty command"
     if len(cmd) > 1024:
         return False, "Command too long"
-    cmd += "\n"
-    cmd = cmd.encode()
-    stdin = PROCESS.stdin
-    if stdin is not None:
-        stdin.write(cmd)
-        stdin.flush()
-        return True, ""
-    return False, "No stdin"
+    try:
+        cmd += "\n"
+        cmd = cmd.encode()
+        stdin = PROCESS.stdin
+        if stdin is not None:
+            stdin.write(cmd)
+            stdin.flush()
+            print(f"{bcolors.OKGREEN}[📝 command]{bcolors.ENDC} Sent: {cmd.decode().strip()}")
+            return True, ""
+        return False, "No stdin"
+    except Exception as e:
+        return False, f"Failed to send command: {str(e)}"
 
 
 def main():
-    """
-        This loop checks if the server is online and if not, it restarts it.
-    """
     global FAILED_HEARTBEATS
     global MAX_FAILED_HEARTBEATS
     global PROCESS
+    
+    print(f"{bcolors.OKBLUE}[🔄 main]{bcolors.ENDC} Starting main loop...")
+    
     while True:
         tick_status = tick()
         if not tick_status:
             FAILED_HEARTBEATS += 1
+            print(f"{bcolors.WARNING}[💔 main]{bcolors.ENDC} Failed heartbeats: {FAILED_HEARTBEATS}/{MAX_FAILED_HEARTBEATS}")
+            
         if FAILED_HEARTBEATS >= MAX_FAILED_HEARTBEATS:
-            print(bcolors.FAIL, "[main]", bcolors.ENDC, "could not reach server...")
+            print(f"{bcolors.FAIL}[🚨 main]{bcolors.ENDC} Maximum failed heartbeats reached!")
             restart()
             sleep(TICK_RATE*5)
             FAILED_HEARTBEATS = 0
+            
         if not get_latest_local_version() and tick_status:
-            print(bcolors.OKGREEN, "[main]", bcolors.ENDC, "server is online, but I need to restart it")
-            send_cmd("chat found a new version of server, updating in 5 minutes, save your stuff")
-            sleep(60*4)
-            send_cmd("chat server is restarting in 1 minutes")
-            sleep(50)
-            send_cmd("chat server is restarting in 10 seconds")
-            sleep(10)
-            send_cmd("chat server is restarting in 5 seconds")
-            sleep(5)
-            send_cmd("chat server is restarting in 4 seconds")
-            sleep(1)
-            send_cmd("chat server is restarting in 3 seconds")
-            sleep(1)
-            send_cmd("chat server is restarting in 2 seconds")
-            sleep(1)
-            send_cmd("chat server is restarting in 1 second")
-            sleep(1)
-            send_cmd("chat server is restarting NOW!")
-            sleep(1)
+            print(f"{bcolors.WARNING}[⚠️ main]{bcolors.ENDC} Update required - initiating countdown...")
+            
+            countdown_messages = [
+                ("chat 🔄 Found a new version of server, updating in 5 minutes, save your stuff!", 240),
+                ("chat ⚠️ Server is restarting in 1 minute!", 50),
+                ("chat 🕐 Server is restarting in 10 seconds!", 5),
+                ("chat 5️⃣ Server is restarting in 5 seconds!", 1),
+                ("chat 4️⃣ Server is restarting in 4 seconds!", 1),
+                ("chat 3️⃣ Server is restarting in 3 seconds!", 1),
+                ("chat 2️⃣ Server is restarting in 2 seconds!", 1),
+                ("chat 1️⃣ Server is restarting in 1 second!", 1),
+                ("chat 🚀 Server is restarting NOW!", 1)
+            ]
+            
+            for msg, delay in countdown_messages:
+                send_cmd(msg)
+                sleep(delay)
+                
             update()
             restart()
+            
         sleep(TICK_RATE)
 
 if __name__ == "__main__":
+    print(f"{bcolors.OKBLUE}[🎮 init]{bcolors.ENDC} Starting Nanos World Server Manager...")
     get_latest_local_version()
     start()
     main()
