@@ -259,6 +259,21 @@ def main():
 
 if __name__ == "__main__":
     print(f"{bcolors.OKBLUE}[🎮 init]{bcolors.ENDC} Starting Nanos World Server Manager...")
-    get_latest_local_version()
+    
+    # Check if port is already in use
+    try:
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex((IP, PORT))
+        if result == 0:
+            print(f"{bcolors.FAIL}[🚫 init]{bcolors.ENDC} Port {PORT} is already in use!")
+            sys.exit(1)
+        sock.close()
+    except Exception as e:
+        print(f"{bcolors.WARNING}[⚠️ init]{bcolors.ENDC} Failed to check port availability: {str(e)}")
+
+    if not get_latest_local_version():
+        print(f"{bcolors.WARNING}[⚠️ init]{bcolors.ENDC} No local version found - retrieving latest version...")
+        update()
     start()
     main()
