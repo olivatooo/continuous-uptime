@@ -144,3 +144,63 @@ def load_config(file_path: str) -> ServerConfig:
     except yaml.YAMLError as e:
         print("⚠️ Invalid YAML format detected!")
         raise yaml.YAMLError(f"Invalid YAML format in config file: {str(e)}")
+
+def create_empty_config(file_path: str):
+    """
+    Creates an empty config file with default values at the specified path.
+    
+    Args:
+        file_path: Path where the config file should be created
+        
+    Raises:
+        PermissionError: If unable to write to specified path
+    """
+    try:
+        print(f"📝 Creating empty config file at: {file_path}")
+        
+        default_config = """[discover]
+    name =              "nanos world server"
+    ip =                "0.0.0.0"
+    port =              7777
+    query_port =        7778
+    announce =          true
+    dedicated_server =  true
+
+[general]
+    max_players =       64
+    password =          ""
+    token =             ""
+    banned_ids = [
+                        
+    ]
+
+[game]
+    map =               "default-blank-map"
+    game_mode =         ""
+    packages = [
+                        
+    ]
+    assets = [
+                        
+    ]
+    loading_screen =    ""
+
+[custom_settings]
+
+[debug]
+    log_level =         1
+    async_log =         true
+    profiling =         false
+
+[optimization]
+    tick_rate =         33
+    compression =       1"""
+
+        with open(file_path, 'w') as f:
+            f.write(default_config)
+            
+        print("✅ Empty config file created successfully")
+        
+    except PermissionError:
+        print("❌ Permission denied when creating config file!")
+        raise PermissionError(f"Unable to create config file at: {file_path}")

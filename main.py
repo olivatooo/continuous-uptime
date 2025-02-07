@@ -1,5 +1,5 @@
 import subprocess
-from time import sleep
+from time import sleep, time
 from os import getcwd, path, makedirs
 from subprocess import Popen, PIPE
 import urllib.request
@@ -19,18 +19,27 @@ class bcolors:
     UNDERLINE = "\033[4m"
 
 
-PORT = 7777
-IP = "127.0.0.1"
-TICK_RATE = 60
-IS_BETA_BRANCH = True
-LATEST_LOCAL_VERSION = "0"
-LATEST_VERSION = "0"
-VERSION_ENDPOINT = "https://api.nanos.world/game/changelog"
+import os
+
+PORT = int(os.getenv('PORT', 7777))
+IP = os.getenv('IP', '127.0.0.1')
+SHOULD_UPDATE_GIT = os.getenv('SHOULD_UPDATE_GIT', 'true').lower() == 'true'
+TICK_RATE = int(os.getenv('TICK_RATE', 60))
+IS_BETA_BRANCH = os.getenv('IS_BETA_BRANCH', 'true').lower() == 'true'
+VERSION_ENDPOINT = os.getenv('VERSION_ENDPOINT', 'https://api.nanos.world/game/changelog')
+UPDATE_INTERVAL = int(os.getenv('UPDATE_INTERVAL', 900))
+#GIT_PACKAGES = json.loads(os.getenv('GIT_PACKAGES', '''[{
+#    "name": "NanosWorldServer",
+#    "url": "https://github.com/NanosWorld/NanosWorldServer.git", 
+#    "branch": "main"
+#}]'''))
+GIT_PACKAGES = json.loads(os.getenv('GIT_PACKAGES', '[]'))
 PROCESS: Popen
 FAILED_HEARTBEATS = 0
 MAX_FAILED_HEARTBEATS = 10
-SERVER_DIR = f"servers/{PORT}"
-
+SERVER_DIR = getcwd() + f"/servers/{PORT}"
+LATEST_LOCAL_VERSION = "0"
+LATEST_VERSION = "0"
 
 def get_latest_local_version():
     global LATEST_LOCAL_VERSION
@@ -43,7 +52,7 @@ def get_latest_local_version():
             f"{bcolors.OKBLUE}[🔍 get local version]{bcolors.ENDC} Checking local version..."
         )
     try:
-        version_file = path.join(SERVER_DIR, "version.txt")
+        version_file = "version.txt"
         if not path.exists(version_file):
             print(
                 f"{bcolors.WARNING}[❌ get local version]{bcolors.ENDC} version.txt not found!"
@@ -82,7 +91,7 @@ def set_latest_local_version(version):
         f"{bcolors.OKBLUE}[💾 set version]{bcolors.ENDC} Saving new version: {version}"
     )
     try:
-        version_file = path.join(SERVER_DIR, "version.txt")
+        version_file = "version.txt"
         f = open(version_file, "w")
         f.write(version)
         f.close()
@@ -136,7 +145,7 @@ def get_latest_version():
         print(
             f"{bcolors.FAIL}[❌ get latest version]{bcolors.ENDC} Unexpected error: {str(e)}"
         )
-        raise SystemExit
+        return False
 
 
 def tick():
@@ -232,7 +241,7 @@ def update():
 
     print(f"{bcolors.OKBLUE}[⏳ update]{bcolors.ENDC} Downloading updates...")
     pout = subprocess.run(
-        steamcmd, cwd=SERVER_DIR, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE
+        steamcmd, cwd=SERVER_DIR
     )
     if pout.returncode == 0:
         print(
@@ -294,35 +303,69 @@ def main():
             sleep(TICK_RATE * 5)
             FAILED_HEARTBEATS = 0
 
-        if not get_latest_local_version() and tick_status:
-            print(
-                f"{bcolors.WARNING}[⚠️ main]{bcolors.ENDC} Update required - initiating countdown..."
-            )
+        # Check for updates every 15 minutes (900 seconds)
+        
+        if tick_status and (int(time()) % UPDATE_INTERVAL == 0):
+            if not get_latest_local_version():
+                print(
+                    f"{bcolors.WARNING}[⚠️ main]{bcolors.ENDC} Update required - initiating countdown..."
+                )
 
-            countdown_messages = [
-                (
-                    "chat 🔄 Found a new version of server, updating in 5 minutes, save your stuff!",
-                    240,
-                ),
-                ("chat ⚠️ Server is restarting in 1 minute!", 50),
-                ("chat 🕐 Server is restarting in 10 seconds!", 5),
-                ("chat 5️⃣ Server is restarting in 5 seconds!", 1),
-                ("chat 4️⃣ Server is restarting in 4 seconds!", 1),
-                ("chat 3️⃣ Server is restarting in 3 seconds!", 1),
-                ("chat 2️⃣ Server is restarting in 2 seconds!", 1),
-                ("chat 1️⃣ Server is restarting in 1 second!", 1),
-                ("chat 🚀 Server is restarting NOW!", 1),
-            ]
+                countdown_messages = [
+                    (
+                        "chat 🔄 Found a new version of server, updating in 5 minutes, save your stuff!",
+                        240,
+                    ),
+                    ("chat ⚠️ Server is restarting in 1 minute!", 50),
+                    ("chat 🕐 Server is restarting in 10 seconds!", 5),
+                    ("chat 5️⃣ Server is restarting in 5 seconds!", 1),
+                    ("chat 4️⃣ Server is restarting in 4 seconds!", 1),
+                    ("chat 3️⃣ Server is restarting in 3 seconds!", 1),
+                    ("chat 2️⃣ Server is restarting in 2 seconds!", 1),
+                    ("chat 1️⃣ Server is restarting in 1 second!", 1),
+                    ("chat 🚀 Server is restarting NOW!", 1),
+                ]
 
-            for msg, delay in countdown_messages:
-                send_cmd(msg)
-                sleep(delay)
+                for msg, delay in countdown_messages:
+                    send_cmd(msg)
+                    sleep(delay)
 
-            update()
-            restart()
+                update()
+                sleep(10)
+                restart()
 
         sleep(TICK_RATE)
 
+
+def install_git_packages():
+    print(f"{bcolors.OKBLUE}[📦 git]{bcolors.ENDC} Installing Git packages...")
+    packages_dir = path.join(SERVER_DIR, "Packages")
+    makedirs(packages_dir, exist_ok=True)
+
+    for package in GIT_PACKAGES:
+        package_name = package["name"]
+        package_url = package["url"]
+        package_branch = package.get("branch", "main")
+        package_dir = path.join(packages_dir, package_name)
+
+        print(f"{bcolors.OKBLUE}[📦 git]{bcolors.ENDC} Installing {package_name}...")
+
+        if path.exists(package_dir):
+            print(f"{bcolors.OKBLUE}[📦 git]{bcolors.ENDC} Updating {package_name}...")
+            try:
+                subprocess.run(["git", "pull"], cwd=package_dir, check=True)
+                print(f"{bcolors.OKGREEN}[✅ git]{bcolors.ENDC} {package_name} updated successfully!")
+            except subprocess.CalledProcessError as e:
+                print(f"{bcolors.FAIL}[❌ git]{bcolors.ENDC} Failed to update {package_name}: {str(e)}")
+        else:
+            print(f"{bcolors.OKBLUE}[📦 git]{bcolors.ENDC} Cloning {package_name}...")
+            try:
+                subprocess.run(["git", "clone", "-b", package_branch, package_url, package_dir], check=True)
+                print(f"{bcolors.OKGREEN}[✅ git]{bcolors.ENDC} {package_name} installed successfully!")
+            except subprocess.CalledProcessError as e:
+                print(f"{bcolors.FAIL}[❌ git]{bcolors.ENDC} Failed to clone {package_name}: {str(e)}")
+
+    pass
 
 if __name__ == "__main__":
     print(
@@ -352,5 +395,6 @@ if __name__ == "__main__":
             f"{bcolors.WARNING}[⚠️ init]{bcolors.ENDC} No local version found - retrieving latest version..."
         )
         update()
+    install_git_packages()
     start()
     main()
