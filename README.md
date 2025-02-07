@@ -1,4 +1,3 @@
-# 🎮 Nanos World Server Manager
 
 A powerful Python script that automates and manages your Nanos World game server with features like automatic updates, health monitoring, graceful restarts, and player notifications.
 
