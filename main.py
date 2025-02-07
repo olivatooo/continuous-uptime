@@ -4,6 +4,7 @@ from os import getcwd, path, makedirs
 from subprocess import Popen, PIPE
 import urllib.request
 import json
+import shlex 
 import sys
 
 
@@ -21,25 +22,49 @@ class bcolors:
 
 import os
 
-PORT = int(os.getenv('PORT', 7777))
-IP = os.getenv('IP', '127.0.0.1')
-SHOULD_UPDATE_GIT = os.getenv('SHOULD_UPDATE_GIT', 'true').lower() == 'true'
-TICK_RATE = int(os.getenv('TICK_RATE', 60))
-IS_BETA_BRANCH = os.getenv('IS_BETA_BRANCH', 'true').lower() == 'true'
-VERSION_ENDPOINT = os.getenv('VERSION_ENDPOINT', 'https://api.nanos.world/game/changelog')
-UPDATE_INTERVAL = int(os.getenv('UPDATE_INTERVAL', 900))
-#GIT_PACKAGES = json.loads(os.getenv('GIT_PACKAGES', '''[{
-#    "name": "NanosWorldServer",
-#    "url": "https://github.com/NanosWorld/NanosWorldServer.git", 
-#    "branch": "main"
-#}]'''))
-GIT_PACKAGES = json.loads(os.getenv('GIT_PACKAGES', '[]'))
+PORT = int(os.getenv("PORT", 7777))
+QUERY_PORT = int(os.getenv("QUERY_PORT", PORT + 1))
+IP = os.getenv("IP", "127.0.0.1")
+SHOULD_UPDATE_GIT = os.getenv("SHOULD_UPDATE_GIT", "true").lower() == "true"
+TICK_RATE = int(os.getenv("TICK_RATE", 60))
+IS_BETA_BRANCH = os.getenv("IS_BETA_BRANCH", "true").lower() == "true"
+VERSION_ENDPOINT = os.getenv(
+    "VERSION_ENDPOINT", "https://api.nanos.world/game/changelog"
+)
+UPDATE_INTERVAL = int(os.getenv("UPDATE_INTERVAL", 900))
+GIT_PACKAGES = json.loads(os.getenv("GIT_PACKAGES", "[]"))
 PROCESS: Popen
 FAILED_HEARTBEATS = 0
 MAX_FAILED_HEARTBEATS = 10
 SERVER_DIR = getcwd() + f"/servers/{PORT}"
 LATEST_LOCAL_VERSION = "0"
 LATEST_VERSION = "0"
+GAMEMODE = os.getenv("GAMEMODE")
+EXTRA_PARAMETERS = os.getenv("EXTRA_PARAMETERS") 
+MAX_PLAYERS = os.getenv("MAX_PLAYERS")
+SERVER_ID = os.getenv("SERVER_ID")
+PASSWORD = os.getenv("PASSWORD")
+ASSETS = os.getenv("ASSETS")
+DESCRIPTION = os.getenv("DESCRIPTION")
+NAME = os.getenv("NAME")
+LOGO = os.getenv("LOGO")
+LOADING_SCREEN = os.getenv("LOADING_SCREEN")
+PACKAGES = os.getenv("PACKAGES")
+MAP = os.getenv("MAP")
+TOKEN = os.getenv("TOKEN")
+ANNOUNCE = os.getenv("ANNOUNCE")
+DEDICATED_SERVER = os.getenv("DEDICATED_SERVER")
+ASYNC_LOG = os.getenv("ASYNC_LOG")
+LOG_LEVEL = os.getenv("LOG_LEVEL")
+COMPRESSION = os.getenv("COMPRESSION")
+SAVE = os.getenv("SAVE")
+PROFILING = os.getenv("PROFILING")
+AUTO_DOWNLOAD = os.getenv("AUTO_DOWNLOAD")
+USE_VAULT_ASSETS_LEAN = os.getenv("USE_VAULT_ASSETS_LEAN")
+LOG_SHOW_THREAD = os.getenv("LOG_SHOW_THREAD")
+ENABLE_UNSAFE_LIBS = os.getenv("ENABLE_UNSAFE_LIBS")
+CUSTOM_SETTINGS = os.getenv("CUSTOM_SETTINGS")
+
 
 def get_latest_local_version():
     global LATEST_LOCAL_VERSION
@@ -149,7 +174,7 @@ def get_latest_version():
 
 
 def tick():
-    global PROCESS
+    global PROCESSNanos
     if "PROCESS" not in globals():
         print(f"{bcolors.FAIL}[❌ tick]{bcolors.ENDC} Server process not initialized!")
         return False
@@ -181,13 +206,115 @@ def kill():
 def start():
     print(f"{bcolors.OKBLUE}[🚀 start]{bcolors.ENDC} Launching server...")
     global PROCESS
+    global PROCESS
+    global GAMEMODE
+    global PACKAGES
+    global NAME
+    global DESCRIPTION
+    global LOGO
+    global PASSWORD
+    global IP
+    global MAP
+    global PORT
+    global QUERY_PORT
+    global ANNOUNCE
+    global LOADING_SCREEN
+    global ASSETS
+    global TOKEN
 
     server_executable = path.join(SERVER_DIR, "NanosWorldServer.sh")
     if not path.exists(server_executable):
         print(f"{bcolors.FAIL}[❌ start]{bcolors.ENDC} Server executable not found!")
         raise SystemExit
+    command = [server_executable]
+    if NAME:
+        command.extend(["--name", shlex.quote(NAME)])
+    if DESCRIPTION:
+        command.extend(["--description", shlex.quote(DESCRIPTION)])
+    if LOGO:
+        command.extend(["--logo", shlex.quote(LOGO)])
+    if PASSWORD:
+        command.extend(["--password", shlex.quote(PASSWORD)])
+    if IP:
+        command.extend(["--ip", shlex.quote(IP)])
+    if MAP:
+        command.extend(["--map", shlex.quote(MAP)])
+    if PORT:
+        command.extend(["--port", str(PORT)])
+    if QUERY_PORT:
+        command.extend(["--query_port", str(QUERY_PORT)])
+    if ANNOUNCE:
+        command.extend(["--announce", ANNOUNCE])
+    if PACKAGES:
+        command.extend(["--packages", shlex.quote(PACKAGES)])
+    else:
+        packages_dir = path.join(SERVER_DIR, "Packages")
+        if path.exists(packages_dir):
+            package_folders = [f for f in os.listdir(packages_dir) if path.isdir(path.join(packages_dir, f))]
+            if package_folders:
+                packages_str = ",".join(package_folders)
+                command.extend(["--packages", packages_str])
+                PACKAGES = packages_str
+                print(f"{bcolors.OKBLUE}[📦 start]{bcolors.ENDC} Found packages: {packages_str}")
+            else:
+                print(f"{bcolors.WARNING}[📦 start]{bcolors.ENDC} No packages found in Packages directory")
+        else:
+            print(f"{bcolors.WARNING}[📦 start]{bcolors.ENDC} Packages directory not found")
+    if not GAMEMODE and PACKAGES and "," not in PACKAGES:
+        GAMEMODE = PACKAGES
+        print(f"{bcolors.OKBLUE}[🎮 start]{bcolors.ENDC} Using only package as gamemode: {GAMEMODE}")
+    if GAMEMODE:
+        command.extend(["--game_mode", shlex.quote(GAMEMODE)])
+    if LOADING_SCREEN:
+        command.extend(["--loading_screen", shlex.quote(LOADING_SCREEN)])
+    if ASSETS:
+        command.extend(["--assets", shlex.quote(ASSETS)])
+    if TOKEN:
+        command.extend(["--token", shlex.quote(TOKEN)])
+    if MAX_PLAYERS:
+        command.extend(["--max_players", MAX_PLAYERS])
+    if DEDICATED_SERVER:
+        command.extend(["--dedicated_server", DEDICATED_SERVER])
+    if ASYNC_LOG:
+        command.extend(["--async_log", ASYNC_LOG])
+    if LOG_LEVEL:
+        command.extend(["--log_level", LOG_LEVEL])
+    if CUSTOM_SETTINGS:
+        command.extend(["--custom_settings", shlex.quote(CUSTOM_SETTINGS)])
+    if COMPRESSION:
+        command.extend(["--compression", COMPRESSION])
+    if SAVE:
+        command.extend(["--save", SAVE])
+    if PROFILING:
+        command.extend(["--profiling", PROFILING])
+    if AUTO_DOWNLOAD:
+        command.extend(["--auto_download", AUTO_DOWNLOAD])
+    if USE_VAULT_ASSETS_LEAN:
+        command.extend(["--use_vault_assets_lean", USE_VAULT_ASSETS_LEAN])
+    if LOG_SHOW_THREAD:
+        command.extend(["--log_show_thread", LOG_SHOW_THREAD])
+    if ENABLE_UNSAFE_LIBS:
+        command.extend(["--enable_unsafe_libs", ENABLE_UNSAFE_LIBS])
 
-    PROCESS = Popen([""], executable=server_executable, stdin=PIPE, cwd=SERVER_DIR)
+    if EXTRA_PARAMETERS:
+        extra_params = shlex.split(EXTRA_PARAMETERS)
+        command.extend(extra_params)
+
+    print()
+    print(f"{bcolors.OKBLUE}[🔧 start]{bcolors.ENDC} Command: {' '.join(command)}")
+    print()
+
+    PROCESS = Popen(command, stdin=PIPE, cwd=SERVER_DIR)
+    # Check for immediate startup errors
+    sleep(0.5)  # Give process a moment to start
+    if PROCESS.poll() is not None:
+        stdout, stderr = PROCESS.communicate()
+        print(f"{bcolors.FAIL}[❌ start]{bcolors.ENDC} Server failed to start!")
+        if stdout:
+            print(f"{bcolors.FAIL}[❌ start]{bcolors.ENDC} stdout: {stdout.decode()}")
+        if stderr:
+            print(f"{bcolors.FAIL}[❌ start]{bcolors.ENDC} stderr: {stderr.decode()}")
+        raise SystemExit
     retries = 0
     max_retries = 30
 
@@ -217,10 +344,10 @@ def restart():
 
 def update():
     print(f"{bcolors.OKBLUE}[⬆️ update]{bcolors.ENDC} Starting server update...")
-    
+
     # Create server directory if it doesn't exist
     makedirs(SERVER_DIR, exist_ok=True)
-    
+
     steamcmd = [
         "steamcmd",
         "+force_install_dir",
@@ -240,9 +367,7 @@ def update():
     steamcmd += ["validate", "+quit"]
 
     print(f"{bcolors.OKBLUE}[⏳ update]{bcolors.ENDC} Downloading updates...")
-    pout = subprocess.run(
-        steamcmd, cwd=SERVER_DIR
-    )
+    pout = subprocess.run(steamcmd, cwd=SERVER_DIR)
     if pout.returncode == 0:
         print(
             f"{bcolors.OKGREEN}[✅ update]{bcolors.ENDC} Server updated successfully!"
@@ -304,7 +429,7 @@ def main():
             FAILED_HEARTBEATS = 0
 
         # Check for updates every 15 minutes (900 seconds)
-        
+
         if tick_status and (int(time()) % UPDATE_INTERVAL == 0):
             if not get_latest_local_version():
                 print(
@@ -339,6 +464,11 @@ def main():
 
 def install_git_packages():
     print(f"{bcolors.OKBLUE}[📦 git]{bcolors.ENDC} Installing Git packages...")
+    
+    if not GIT_PACKAGES:
+        print(f"{bcolors.WARNING}[📦 git]{bcolors.ENDC} No Git packages to install")
+        return
+        
     packages_dir = path.join(SERVER_DIR, "Packages")
     makedirs(packages_dir, exist_ok=True)
 
@@ -354,18 +484,56 @@ def install_git_packages():
             print(f"{bcolors.OKBLUE}[📦 git]{bcolors.ENDC} Updating {package_name}...")
             try:
                 subprocess.run(["git", "pull"], cwd=package_dir, check=True)
-                print(f"{bcolors.OKGREEN}[✅ git]{bcolors.ENDC} {package_name} updated successfully!")
+                print(
+                    f"{bcolors.OKGREEN}[✅ git]{bcolors.ENDC} {package_name} updated successfully!"
+                )
             except subprocess.CalledProcessError as e:
-                print(f"{bcolors.FAIL}[❌ git]{bcolors.ENDC} Failed to update {package_name}: {str(e)}")
+                print(
+                    f"{bcolors.FAIL}[❌ git]{bcolors.ENDC} Failed to update {package_name}: {str(e)}"
+                )
         else:
             print(f"{bcolors.OKBLUE}[📦 git]{bcolors.ENDC} Cloning {package_name}...")
             try:
-                subprocess.run(["git", "clone", "-b", package_branch, package_url, package_dir], check=True)
-                print(f"{bcolors.OKGREEN}[✅ git]{bcolors.ENDC} {package_name} installed successfully!")
+                subprocess.run(
+                    [
+                        "git",
+                        "clone",
+                        "-b",
+                        package_branch,
+                        package_url,
+                        package_dir,
+                        "--depth",
+                        "1",
+                    ],
+                    check=True,
+                )
+                print(
+                    f"{bcolors.OKGREEN}[✅ git]{bcolors.ENDC} {package_name} installed successfully!"
+                )
             except subprocess.CalledProcessError as e:
-                print(f"{bcolors.FAIL}[❌ git]{bcolors.ENDC} Failed to clone {package_name}: {str(e)}")
+                print(
+                    f"{bcolors.FAIL}[❌ git]{bcolors.ENDC} Failed to clone {package_name}: {str(e)}"
+                )
 
-    pass
+def set_logo():
+    if LOGO:
+        print(f"{bcolors.OKBLUE}[🖼️ logo]{bcolors.ENDC} Using logo from environment variable: {LOGO}")
+        return
+    
+    if GAMEMODE:
+        gamemode_logo = path.join(SERVER_DIR, "Packages", GAMEMODE, "Server.jpg")
+        target_logo = path.join(SERVER_DIR, "Server.jpg")
+        
+        if path.exists(gamemode_logo):
+            try:
+                from shutil import copyfile
+                copyfile(gamemode_logo, target_logo)
+                print(f"{bcolors.OKGREEN}[✅ logo]{bcolors.ENDC} Copied logo from gamemode: {gamemode_logo}")
+            except Exception as e:
+                print(f"{bcolors.FAIL}[❌ logo]{bcolors.ENDC} Failed to copy gamemode logo: {str(e)}")
+        else:
+            print(f"{bcolors.WARNING}[⚠️ logo]{bcolors.ENDC} No logo found in gamemode directory: {gamemode_logo}")
+
 
 if __name__ == "__main__":
     print(
@@ -396,5 +564,6 @@ if __name__ == "__main__":
         )
         update()
     install_git_packages()
+    set_logo()
     start()
     main()

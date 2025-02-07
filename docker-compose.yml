@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  nanos-world:
+    image: olivatooo/super-nanos-world:main
+    ports:
+      - "${PORT:-7777}:${PORT:-7777}/tcp"
+      - "${PORT:-7777}:${PORT:-7777}/udp"
+      - "${QUERY_PORT:-7778}:${QUERY_PORT:-7778}/udp"
+    environment:
+      - PORT=${PORT:-7777}
+      - IP=${IP:-127.0.0.1}
+      - SHOULD_UPDATE_GIT=${SHOULD_UPDATE_GIT:-true}
+      - TICK_RATE=${TICK_RATE:-60}
+      - IS_BETA_BRANCH=${IS_BETA_BRANCH:-true}
+      - VERSION_ENDPOINT=${VERSION_ENDPOINT:-https://api.nanos.world/game/changelog}
+      - UPDATE_INTERVAL=${UPDATE_INTERVAL:-900}
+      - GIT_PACKAGES=${GIT_PACKAGES:-[]}
+      - GAMEMODE=${GAMEMODE:-"sandbox"}
+      - MAX_PLAYERS=${MAX_PLAYERS:-64}
+      - SERVER_ID=${SERVER_ID:-""}
+      - PASSWORD=${PASSWORD:-""}
+      - ASSETS=${ASSETS:-""}
+      - DESCRIPTION=${DESCRIPTION:-""}
+      - NAME=${NAME:-"nanos world server"}
+      - PACKAGES=${PACKAGES:-""}
+      - HTTP_SERVER_POOL_COUNT=${HTTP_SERVER_POOL_COUNT:-4}
+      - MAP=${MAP:-"default-blank-map"}
+      - TOKEN=${TOKEN:-""}
+      - CUSTOM_SETTINGS=${CUSTOM_SETTINGS:-"{}"}
+      - LOGO=${LOGO:-""}
+      - ANNOUNCE=${ANNOUNCE:-1}
+      - LOADING_SCREEN=${LOADING_SCREEN:-""}
+      - DEDICATED_SERVER=${DEDICATED_SERVER:-1}
+      - ASYNC_LOG=${ASYNC_LOG:-1}
+      - LOG_LEVEL=${LOG_LEVEL:-1}
+      - COMPRESSION=${COMPRESSION:-6}
+      - SAVE=${SAVE:-true}
+      - PROFILING=${PROFILING:-false}
+      - AUTO_DOWNLOAD=${AUTO_DOWNLOAD:-true}
+      - USE_VAULT_ASSETS_LEAN=${USE_VAULT_ASSETS_LEAN:-false}
+      - LOG_SHOW_THREAD=${LOG_SHOW_THREAD:-false}
+      - ENABLE_UNSAFE_LIBS=${ENABLE_UNSAFE_LIBS:-false}
+      - EXTRA_PARAMETERS=${EXTRA_PARAMETERS:-""}
+      
+    volumes:
+      - ./servers/${PORT:-7777}:/app/servers/${PORT:-7777}
+    restart: unless-stopped

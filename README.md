@@ -12,6 +12,7 @@ A powerful Python script that automates and manages your Nanos World game server
 - 🛡️ **Crash Recovery**: Automatically recovers from crashes and hangs
 - 🔍 **Version Tracking**: Maintains version history in local files
 - ⚡ **Fast Response**: Quick detection and handling of server issues
+- 📦 **Git Package Support**: Automatically installs and updates Git packages
 
 ## 🛠️ Prerequisites
 
@@ -19,35 +20,18 @@ Before running this script, you'll need:
 
 - Python 3.x installed
 - SteamCMD installed and accessible from PATH
+- Git installed (for Git package support)
 - Basic understanding of server management
 
 ## ⚙️ Configuration
 
-The script is highly configurable through these parameters:
+The script is configured through environment variables:
 
-- 🔌 `PORT` (default: 7777): Which door number the server uses to talk to players
-- 🌐 `IP` (default: 127.0.0.1): The server's home address on the internet
-- ⏰ `TICK_RATE` (default: 60): How often (in seconds) we check if the server is still alive and kicking
-- 🧪 `IS_BETA_BRANCH` (default: True): Want to try new experimental features? Set this to True!
-- 📱 `LATEST_LOCAL_VERSION` (default: "0"): Keeps track of what version you're running
-- 🎮 `LATEST_VERSION` (default: "0"): The newest version available to download
-- 🔗 `VERSION_ENDPOINT`: Where we check for new versions of the game
-- 🤖 `PROCESS`: The actual server program running on your computer
-- 💔 `FAILED_HEARTBEATS` (default: 0): How many times in a row the server didn't respond
-- ❤️ `MAX_FAILED_HEARTBEATS` (default: 10): How many missed heartbeats before we restart the server
-
-## 📚 Installation
-
-To get started, simply run the install script:
-
-```bash
-git clone https://github.com/olivatooo/continuous-uptime && cd continuous-uptime && bash install.sh
-```
-
-## 📖 Usage
-
-To start the server, run:
-
-```bash
-python3 main.py
-```
+- 🔌 `PORT` (default: 7777): Server port number
+- 🌐 `IP` (default: 127.0.0.1): Server IP address
+- ⏰ `TICK_RATE` (default: 60): Health check interval in seconds
+- 🧪 `IS_BETA_BRANCH` (default: true): Enable beta branch updates
+- ⏱️ `UPDATE_INTERVAL` (default: 900): Time between update checks in seconds
+- 📦 `GIT_PACKAGES` (default: [{"name": "NanosWorldServer", "url": "https://github.com/NanosWorld/NanosWorldServer.git", "branch": "main"}]): JSON array of Git packages to install
+- 🎮 `GAMEMODE` (required): Server gamemode to run
+- 🔄 `SHOULD_UPDATE_GIT` (default: true): Enable automatic Git package update
