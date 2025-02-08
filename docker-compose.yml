@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   nanos-world:
-    image: olivatooo/super-nanos-world:main
+    image: olivatooo/super-nanos-world:latest
     ports:
       - "${PORT:-7777}:${PORT:-7777}/tcp"
       - "${PORT:-7777}:${PORT:-7777}/udp"
