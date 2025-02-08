@@ -4,11 +4,13 @@ services:
   nanos-world:
     image: olivatooo/super-nanos-world:latest
     ports:
-      - "${PORT:-7777}:${PORT:-7777}/tcp"
-      - "${PORT:-7777}:${PORT:-7777}/udp"
-      - "${QUERY_PORT:-7778}:${QUERY_PORT:-7778}/udp"
+      - "${PORT}:${PORT}/tcp"
+      - "${PORT}:${PORT}/udp"
+      - "$((PORT+1)):$((PORT+1))/udp"
+      - "$((PORT+1)):$((PORT+1))/tcp"
     environment:
-      - PORT=${PORT:-7777}
+      - PORT=${PORT}
+      - QUERY_PORT=${PORT+1}
       - IP=${IP:-127.0.0.1}
       - SHOULD_UPDATE_GIT=${SHOULD_UPDATE_GIT:-true}
       - TICK_RATE=${TICK_RATE:-60}
@@ -44,5 +46,5 @@ services:
       - EXTRA_PARAMETERS=${EXTRA_PARAMETERS:-""}
       
     volumes:
-      - ./servers/${PORT:-7777}:/app/servers/${PORT:-7777}
+      - ./servers/${PORT}:/app/servers/${PORT}
     restart: unless-stopped

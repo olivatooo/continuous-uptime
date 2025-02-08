@@ -4,7 +4,7 @@ from os import getcwd, path, makedirs
 from subprocess import Popen, PIPE
 import urllib.request
 import json
-import shlex 
+import shlex
 import sys
 
 
@@ -22,11 +22,15 @@ class bcolors:
 
 import os
 
-PORT = int(os.getenv("PORT", 7777))
+if "PORT" not in os.environ:
+    print(f"{bcolors.FAIL}[❌ config]{bcolors.ENDC} PORT environment variable is required")
+    raise SystemExit
+PORT = int(os.getenv("PORT"))
 QUERY_PORT = int(os.getenv("QUERY_PORT", PORT + 1))
 IP = os.getenv("IP", "127.0.0.1")
 SHOULD_UPDATE_GIT = os.getenv("SHOULD_UPDATE_GIT", "true").lower() == "true"
 TICK_RATE = int(os.getenv("TICK_RATE", 60))
+NUMBER_OF_TICKS_TO_CHECK_FOR_UPDATE = int(os.getenv("NUMBER_OF_TICKS_TO_CHECK_FOR_UPDATE", 15))
 IS_BETA_BRANCH = os.getenv("IS_BETA_BRANCH", "true").lower() == "true"
 VERSION_ENDPOINT = os.getenv(
     "VERSION_ENDPOINT", "https://api.nanos.world/game/changelog"
@@ -40,7 +44,7 @@ SERVER_DIR = getcwd() + f"/servers/{PORT}"
 LATEST_LOCAL_VERSION = "0"
 LATEST_VERSION = "0"
 GAMEMODE = os.getenv("GAMEMODE")
-EXTRA_PARAMETERS = os.getenv("EXTRA_PARAMETERS") 
+EXTRA_PARAMETERS = os.getenv("EXTRA_PARAMETERS")
 MAX_PLAYERS = os.getenv("MAX_PLAYERS")
 SERVER_ID = os.getenv("SERVER_ID")
 PASSWORD = os.getenv("PASSWORD")
@@ -159,13 +163,13 @@ def get_latest_version():
                 print(
                     f"{bcolors.OKGREEN}[✨ get latest version]{bcolors.ENDC} Server is up to date!"
                 )
-            return True
+            return False
         else:
             print(
                 f"{bcolors.WARNING}[⚠️ get latest version]{bcolors.ENDC} New version available!"
             )
             set_latest_local_version(LATEST_VERSION)
-            return False
+            return True
     except Exception as e:
         print(
             f"{bcolors.FAIL}[❌ get latest version]{bcolors.ENDC} Unexpected error: {str(e)}"
@@ -174,14 +178,14 @@ def get_latest_version():
 
 
 def tick():
-    global PROCESSNanos
+    global PROCESS
     if "PROCESS" not in globals():
         print(f"{bcolors.FAIL}[❌ tick]{bcolors.ENDC} Server process not initialized!")
         return False
     try:
         with urllib.request.urlopen(f"http://{IP}:{PORT}", timeout=5) as response:
             response.read()
-        print(f"{bcolors.OKGREEN}[💗 tick]{bcolors.ENDC} Server heartbeat OK")
+        print(f"{bcolors.OKGREEN}.{bcolors.ENDC}", end="")
         return True
     except Exception as e:
         print(f"{bcolors.FAIL}[💔 tick]{bcolors.ENDC} Server is offline!")
@@ -224,21 +228,24 @@ def start():
 
     server_executable = path.join(SERVER_DIR, "NanosWorldServer.sh")
     if not path.exists(server_executable):
-        print(f"{bcolors.FAIL}[❌ start]{bcolors.ENDC} Server executable not found!")
-        raise SystemExit
+        print(f"{bcolors.WARNING}[⚠️ start]{bcolors.ENDC} Server executable not found, attempting update...")
+        update()
+        if not path.exists(server_executable):
+            print(f"{bcolors.FAIL}[❌ start]{bcolors.ENDC} Server executable still not found after update!")
+            raise SystemExit
     command = [server_executable]
     if NAME:
-        command.extend(["--name", shlex.quote(NAME)])
+        command.extend(["--name", NAME])
     if DESCRIPTION:
-        command.extend(["--description", shlex.quote(DESCRIPTION)])
+        command.extend(["--description", DESCRIPTION])
     if LOGO:
-        command.extend(["--logo", shlex.quote(LOGO)])
+        command.extend(["--logo", LOGO])
     if PASSWORD:
-        command.extend(["--password", shlex.quote(PASSWORD)])
+        command.extend(["--password", PASSWORD])
     if IP:
-        command.extend(["--ip", shlex.quote(IP)])
+        command.extend(["--ip", IP])
     if MAP:
-        command.extend(["--map", shlex.quote(MAP)])
+        command.extend(["--map", MAP])
     if PORT:
         command.extend(["--port", str(PORT)])
     if QUERY_PORT:
@@ -246,31 +253,43 @@ def start():
     if ANNOUNCE:
         command.extend(["--announce", ANNOUNCE])
     if PACKAGES:
-        command.extend(["--packages", shlex.quote(PACKAGES)])
+        command.extend(["--packages", PACKAGES])
     else:
         packages_dir = path.join(SERVER_DIR, "Packages")
         if path.exists(packages_dir):
-            package_folders = [f for f in os.listdir(packages_dir) if path.isdir(path.join(packages_dir, f))]
+            package_folders = [
+                f
+                for f in os.listdir(packages_dir)
+                if path.isdir(path.join(packages_dir, f))
+            ]
             if package_folders:
                 packages_str = ",".join(package_folders)
                 command.extend(["--packages", packages_str])
                 PACKAGES = packages_str
-                print(f"{bcolors.OKBLUE}[📦 start]{bcolors.ENDC} Found packages: {packages_str}")
+                print(
+                    f"{bcolors.OKBLUE}[📦 start]{bcolors.ENDC} Found packages: {packages_str}"
+                )
             else:
-                print(f"{bcolors.WARNING}[📦 start]{bcolors.ENDC} No packages found in Packages directory")
+                print(
+                    f"{bcolors.WARNING}[📦 start]{bcolors.ENDC} No packages found in Packages directory"
+                )
         else:
-            print(f"{bcolors.WARNING}[📦 start]{bcolors.ENDC} Packages directory not found")
+            print(
+                f"{bcolors.WARNING}[📦 start]{bcolors.ENDC} Packages directory not found"
+            )
     if not GAMEMODE and PACKAGES and "," not in PACKAGES:
         GAMEMODE = PACKAGES
-        print(f"{bcolors.OKBLUE}[🎮 start]{bcolors.ENDC} Using only package as gamemode: {GAMEMODE}")
+        print(
+            f"{bcolors.OKBLUE}[🎮 start]{bcolors.ENDC} Using only package as gamemode: {GAMEMODE}"
+        )
     if GAMEMODE:
-        command.extend(["--game_mode", shlex.quote(GAMEMODE)])
+        command.extend(["--game_mode", GAMEMODE])
     if LOADING_SCREEN:
-        command.extend(["--loading_screen", shlex.quote(LOADING_SCREEN)])
+        command.extend(["--loading_screen", LOADING_SCREEN])
     if ASSETS:
-        command.extend(["--assets", shlex.quote(ASSETS)])
+        command.extend(["--assets", ASSETS])
     if TOKEN:
-        command.extend(["--token", shlex.quote(TOKEN)])
+        command.extend(["--token", TOKEN])
     if MAX_PLAYERS:
         command.extend(["--max_players", MAX_PLAYERS])
     if DEDICATED_SERVER:
@@ -280,7 +299,7 @@ def start():
     if LOG_LEVEL:
         command.extend(["--log_level", LOG_LEVEL])
     if CUSTOM_SETTINGS:
-        command.extend(["--custom_settings", shlex.quote(CUSTOM_SETTINGS)])
+        command.extend(["--custom_settings", CUSTOM_SETTINGS])
     if COMPRESSION:
         command.extend(["--compression", COMPRESSION])
     if SAVE:
@@ -333,7 +352,6 @@ def start():
             raise SystemExit
         sleep(1)
     print(f"{bcolors.OKGREEN}[✅ start]{bcolors.ENDC} Server started successfully!")
-
 
 def restart():
     print(f"{bcolors.OKBLUE}[🔄 restart]{bcolors.ENDC} Initiating server restart...")
@@ -412,6 +430,8 @@ def main():
 
     print(f"{bcolors.OKBLUE}[🔄 main]{bcolors.ENDC} Starting main loop...")
 
+    update_check_counter = 0
+
     while True:
         tick_status = tick()
         if not tick_status:
@@ -428,10 +448,11 @@ def main():
             sleep(TICK_RATE * 5)
             FAILED_HEARTBEATS = 0
 
-        # Check for updates every 15 minutes (900 seconds)
-
-        if tick_status and (int(time()) % UPDATE_INTERVAL == 0):
-            if not get_latest_local_version():
+        # Check for updates based on NUMBER_OF_TICKS_TO_CHECK_FOR_UPDATE
+        update_check_counter += 1
+        if tick_status and update_check_counter >= NUMBER_OF_TICKS_TO_CHECK_FOR_UPDATE:
+            update_check_counter = 0
+            if get_latest_local_version():
                 print(
                     f"{bcolors.WARNING}[⚠️ main]{bcolors.ENDC} Update required - initiating countdown..."
                 )
@@ -464,11 +485,11 @@ def main():
 
 def install_git_packages():
     print(f"{bcolors.OKBLUE}[📦 git]{bcolors.ENDC} Installing Git packages...")
-    
+
     if not GIT_PACKAGES:
         print(f"{bcolors.WARNING}[📦 git]{bcolors.ENDC} No Git packages to install")
         return
-        
+
     packages_dir = path.join(SERVER_DIR, "Packages")
     makedirs(packages_dir, exist_ok=True)
 
@@ -515,24 +536,34 @@ def install_git_packages():
                     f"{bcolors.FAIL}[❌ git]{bcolors.ENDC} Failed to clone {package_name}: {str(e)}"
                 )
 
+
 def set_logo():
     if LOGO:
-        print(f"{bcolors.OKBLUE}[🖼️ logo]{bcolors.ENDC} Using logo from environment variable: {LOGO}")
+        print(
+            f"{bcolors.OKBLUE}[🖼️ logo]{bcolors.ENDC} Using logo from environment variable: {LOGO}"
+        )
         return
-    
+
     if GAMEMODE:
         gamemode_logo = path.join(SERVER_DIR, "Packages", GAMEMODE, "Server.jpg")
         target_logo = path.join(SERVER_DIR, "Server.jpg")
-        
+
         if path.exists(gamemode_logo):
             try:
                 from shutil import copyfile
+
                 copyfile(gamemode_logo, target_logo)
-                print(f"{bcolors.OKGREEN}[✅ logo]{bcolors.ENDC} Copied logo from gamemode: {gamemode_logo}")
+                print(
+                    f"{bcolors.OKGREEN}[✅ logo]{bcolors.ENDC} Copied logo from gamemode: {gamemode_logo}"
+                )
             except Exception as e:
-                print(f"{bcolors.FAIL}[❌ logo]{bcolors.ENDC} Failed to copy gamemode logo: {str(e)}")
+                print(
+                    f"{bcolors.FAIL}[❌ logo]{bcolors.ENDC} Failed to copy gamemode logo: {str(e)}"
+                )
         else:
-            print(f"{bcolors.WARNING}[⚠️ logo]{bcolors.ENDC} No logo found in gamemode directory: {gamemode_logo}")
+            print(
+                f"{bcolors.WARNING}[⚠️ logo]{bcolors.ENDC} No logo found in gamemode directory: {gamemode_logo}"
+            )
 
 
 if __name__ == "__main__":
