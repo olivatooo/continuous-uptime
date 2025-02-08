@@ -544,16 +544,21 @@ def set_logo():
         return
 
     if GAMEMODE:
-        gamemode_logo = path.join(SERVER_DIR, "Packages", GAMEMODE, "Server.jpg")
+        possible_logos = [
+            path.join(SERVER_DIR, "Packages", GAMEMODE, name)
+            for name in ["Server.jpg", "Server.png", "Package.jpg", "Package.png"]
+        ]
         target_logo = path.join(SERVER_DIR, "Server.jpg")
 
-        if path.exists(gamemode_logo):
+        found_logo = next((logo for logo in possible_logos if path.exists(logo)), None)
+
+        if found_logo:
             try:
                 from shutil import copyfile
 
-                copyfile(gamemode_logo, target_logo)
+                copyfile(found_logo, target_logo)
                 print(
-                    f"{bcolors.OKGREEN}[✅ logo]{bcolors.ENDC} Copied logo from gamemode: {gamemode_logo}"
+                    f"{bcolors.OKGREEN}[✅ logo]{bcolors.ENDC} Copied logo from gamemode: {found_logo}"
                 )
             except Exception as e:
                 print(
@@ -561,9 +566,8 @@ def set_logo():
                 )
         else:
             print(
-                f"{bcolors.WARNING}[⚠️ logo]{bcolors.ENDC} No logo found in gamemode directory: {gamemode_logo}"
+                f"{bcolors.WARNING}[⚠️ logo]{bcolors.ENDC} No logo found in gamemode directory"
             )
-
 
 if __name__ == "__main__":
     print(
