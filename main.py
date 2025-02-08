@@ -1,5 +1,6 @@
 import subprocess
-from time import sleep, time
+from time import sleep
+import os
 from os import getcwd, path, makedirs
 from subprocess import Popen, PIPE
 import urllib.request
@@ -19,8 +20,6 @@ class bcolors:
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
 
-
-import os
 
 if "PORT" not in os.environ:
     print(f"{bcolors.FAIL}[❌ config]{bcolors.ENDC} PORT environment variable is required")
