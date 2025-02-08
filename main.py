@@ -22,14 +22,18 @@ class bcolors:
 
 
 if "PORT" not in os.environ:
-    print(f"{bcolors.FAIL}[❌ config]{bcolors.ENDC} PORT environment variable is required")
+    print(
+        f"{bcolors.FAIL}[❌ config]{bcolors.ENDC} PORT environment variable is required"
+    )
     raise SystemExit
 PORT = int(os.getenv("PORT"))
 QUERY_PORT = int(os.getenv("QUERY_PORT", PORT + 1))
 IP = os.getenv("IP", "127.0.0.1")
 SHOULD_UPDATE_GIT = os.getenv("SHOULD_UPDATE_GIT", "true").lower() == "true"
 TICK_RATE = int(os.getenv("TICK_RATE", 60))
-NUMBER_OF_TICKS_TO_CHECK_FOR_UPDATE = int(os.getenv("NUMBER_OF_TICKS_TO_CHECK_FOR_UPDATE", 15))
+NUMBER_OF_TICKS_TO_CHECK_FOR_UPDATE = int(
+    os.getenv("NUMBER_OF_TICKS_TO_CHECK_FOR_UPDATE", 15)
+)
 IS_BETA_BRANCH = os.getenv("IS_BETA_BRANCH", "true").lower() == "true"
 VERSION_ENDPOINT = os.getenv(
     "VERSION_ENDPOINT", "https://api.nanos.world/game/changelog"
@@ -227,10 +231,14 @@ def start():
 
     server_executable = path.join(SERVER_DIR, "NanosWorldServer.sh")
     if not path.exists(server_executable):
-        print(f"{bcolors.WARNING}[⚠️ start]{bcolors.ENDC} Server executable not found, attempting update...")
+        print(
+            f"{bcolors.WARNING}[⚠️ start]{bcolors.ENDC} Server executable not found, attempting update..."
+        )
         update()
         if not path.exists(server_executable):
-            print(f"{bcolors.FAIL}[❌ start]{bcolors.ENDC} Server executable still not found after update!")
+            print(
+                f"{bcolors.FAIL}[❌ start]{bcolors.ENDC} Server executable still not found after update!"
+            )
             raise SystemExit
     command = [server_executable]
     if NAME:
@@ -302,17 +310,17 @@ def start():
     if COMPRESSION:
         command.extend(["--compression", COMPRESSION])
     if SAVE:
-        command.extend(["--save", SAVE])
+        command.extend(["--save"])
     if PROFILING:
-        command.extend(["--profiling", PROFILING])
+        command.extend(["--profiling"])
     if AUTO_DOWNLOAD:
-        command.extend(["--auto_download", AUTO_DOWNLOAD])
+        command.extend(["--auto_download"])
     if USE_VAULT_ASSETS_LEAN:
-        command.extend(["--use_vault_assets_lean", USE_VAULT_ASSETS_LEAN])
+        command.extend(["--use_vault_assets_lean"])
     if LOG_SHOW_THREAD:
-        command.extend(["--log_show_thread", LOG_SHOW_THREAD])
+        command.extend(["--log_show_thread"])
     if ENABLE_UNSAFE_LIBS:
-        command.extend(["--enable_unsafe_libs", ENABLE_UNSAFE_LIBS])
+        command.extend(["--enable_unsafe_libs"])
 
     if EXTRA_PARAMETERS:
         extra_params = shlex.split(EXTRA_PARAMETERS)
@@ -351,6 +359,7 @@ def start():
             raise SystemExit
         sleep(1)
     print(f"{bcolors.OKGREEN}[✅ start]{bcolors.ENDC} Server started successfully!")
+
 
 def restart():
     print(f"{bcolors.OKBLUE}[🔄 restart]{bcolors.ENDC} Initiating server restart...")
@@ -568,6 +577,7 @@ def set_logo():
             print(
                 f"{bcolors.WARNING}[⚠️ logo]{bcolors.ENDC} No logo found in gamemode directory"
             )
+
 
 if __name__ == "__main__":
     print(
