@@ -26,6 +26,7 @@ if "PORT" not in os.environ:
         f"{bcolors.FAIL}[❌ config]{bcolors.ENDC} PORT environment variable is required"
     )
     raise SystemExit
+
 PORT = int(os.getenv("PORT"))
 QUERY_PORT = int(os.getenv("QUERY_PORT", PORT + 1))
 IP = os.getenv("IP", "127.0.0.1")
@@ -36,7 +37,7 @@ NUMBER_OF_TICKS_TO_CHECK_FOR_UPDATE = int(
 )
 IS_BETA_BRANCH = os.getenv("IS_BETA_BRANCH", "true").lower() == "true"
 VERSION_ENDPOINT = os.getenv(
-    "VERSION_ENDPOINT", "https://api.nanos.world/game/changelog"
+    "VERSION_ENDPOINT", "https://api.nanos-world.com/game/changelog"
 )
 UPDATE_INTERVAL = int(os.getenv("UPDATE_INTERVAL", 900))
 GIT_PACKAGES = json.loads(os.getenv("GIT_PACKAGES", "[]"))
@@ -156,7 +157,7 @@ def get_latest_version():
             )
             return False
 
-        LATEST_VERSION = data[0]["name"]
+        LATEST_VERSION = data["payload"][0]["name"]
         if should_print:
             print(
                 f"{bcolors.OKGREEN}[✅ get latest version]{bcolors.ENDC} Latest version: {LATEST_VERSION}"
